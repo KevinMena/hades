@@ -1,5 +1,9 @@
 use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError, error, warn, info, debug, trace};
 use colored::*;
+use time::{format_description::FormatItem, OffsetDateTime};
+
+const TIMESTAMP_FORMAT: &[FormatItem] =
+    time::macros::format_description!("[day]-[month]-[year] [hour]:[minute]:[second]");
 
 pub struct Logger;
 
@@ -16,7 +20,7 @@ impl Logger {
 
 impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
+        metadata.level() <= Level::Trace
     }
 
     fn log(&self, record: &Record) {
@@ -31,8 +35,14 @@ impl Log for Logger {
                 Level::Trace => format!("{:<5}", record.level().to_string()).cyan().to_string()
             };
 
+            let timestamp = format!(
+                "{}", 
+                OffsetDateTime::now_utc().format(TIMESTAMP_FORMAT)
+                    .expect("Error with time stamp format")
+                );
+
             // Construct the message and print it
-            let message = format!("[{}] {}", level_string, record.args());
+            let message = format!("[{}] {} - {}", level_string, timestamp, record.args());
 
             println!("{}", message);
         }
@@ -45,22 +55,22 @@ pub fn init() -> Result<(), SetLoggerError>{
     Logger::new().init()
 }
 
-pub fn trace(message: String) {
+pub fn hades_trace(message: String) {
     trace!("{}", message)
 }
 
-pub fn debug(message: String) {
+pub fn hades_debug(message: String) {
     debug!("{}", message)
 }
 
-pub fn info(message: String) {
+pub fn hades_info(message: String) {
     info!("{}", message)
 }
 
-pub fn warn(message: String) {
+pub fn hades_warn(message: String) {
     warn!("{}", message)
 }
 
-pub fn error(message: String) {
+pub fn hades_error(message: String) {
     error!("{}", message)
 }

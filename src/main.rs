@@ -10,10 +10,10 @@ fn main() {
     let e = Event::new(EventType::WindowResize { width: 1280, height: 720 });
 
     if e.is_in_category(EventCategory::EventCategoryApplication) {
-        info(e.to_string());
+        hades_trace(e.to_string());
     }
 
     if !e.is_in_category(EventCategory::EventCategoryInput) {
-        error(e.to_string());
+        hades_trace(e.to_string());
     }
 }
