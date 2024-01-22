@@ -1,19 +1,18 @@
 pub mod logger;
 pub mod events;
+pub mod window;
+
 use events::*;
 use logger::*;
+use window::*;
 
 
 fn main() {
     Logger::new().init().unwrap();
 
-    let e = Event::new(EventType::WindowResize { width: 1280, height: 720 });
+    let mut window = WindowsWindow::init();
 
-    if e.is_in_category(EventCategory::EventCategoryApplication) {
-        hades_trace(e.to_string());
-    }
-
-    if !e.is_in_category(EventCategory::EventCategoryInput) {
-        hades_trace(e.to_string());
+    while !window.should_close() {
+        window.on_update()
     }
 }
