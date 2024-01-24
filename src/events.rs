@@ -114,7 +114,26 @@ pub struct EventDispatcher {
 }
 
 impl EventDispatcher {
+    pub fn new(event: Event) -> EventDispatcher {
+        EventDispatcher {event}
+    }
+
     pub fn dispatch (&mut self, f: fn(&Event) -> bool) {
         self.event.handled = f(&self.event)
     }
+
+    pub fn get_event(&self) -> &Event {
+        &self.event
+    }
+}
+
+pub trait Observer {
+    fn update(&self, event: &Event);
+}
+
+// TODO: UNDERSTAND WHY 'a AND CHECK IF THERE IS A BETTER WAY TO DO THIS
+pub trait Subject<'a, T: Observer> {
+    fn attach(&mut self, observer: &'a mut T);
+    fn detach(&mut self, observer: &'a mut T);
+    fn notify(&self, event: &Event);
 }

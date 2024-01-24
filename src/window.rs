@@ -1,7 +1,7 @@
-use glfw::{GlfwReceiver, Action, Context, Key, WindowEvent, fail_on_errors};
+use glfw::{GlfwReceiver, Action, Context, Error, WindowEvent};
 
-use crate::Event;
-use crate::logger::*;
+use crate::events::{Event, EventType};
+use crate::{logger::*, Subject, Observer};
 
 pub trait Window {
     fn on_update(&mut self);
@@ -9,7 +9,6 @@ pub trait Window {
     fn get_width(&self) -> u32;
     fn get_height(&self) -> u32;
 
-    fn set_event_callback(&mut self, callback: fn(&Event));
     fn set_vsync(&mut self, enabled: bool);
     fn is_vsync(&self) -> bool;
 }
@@ -18,29 +17,26 @@ struct WindowData {
     title: String,
     width: u32,
     height: u32,
-    vsync: bool,
-    event_callback: Option<fn(&Event)>
+    vsync: bool
 }
 
 impl WindowData {
     fn default() -> WindowData {
-        WindowData {title: String::from("Hades Engine"), width: 1280, height: 720, vsync: true, event_callback: None}
-    }
-
-    fn new(title: String, width: u32, height: u32) -> WindowData {
-        WindowData {title, width, height, vsync: true, event_callback: None}
+        WindowData {title: String::from("Hades Engine"), width: 1280, height: 720, vsync: true}
     }
 }
 
-pub struct WindowsWindow {
+pub struct WindowsWindow<'a, T: Observer> {
+    app: Option<&'a mut T>,
     glfw: glfw::Glfw,
     window_handle: glfw::PWindow,
     events: GlfwReceiver<(f64, WindowEvent)>,
     data: WindowData
 }
 
-impl Window for WindowsWindow {
+impl<'a, T: Observer> Window for WindowsWindow<'a, T> {
     fn on_update(&mut self) {
+        self.process_events();
         self.glfw.poll_events();
         self.window_handle.swap_buffers();
     }
@@ -51,10 +47,6 @@ impl Window for WindowsWindow {
 
     fn get_height(&self) -> u32 {
         self.data.height
-    }
-
-    fn set_event_callback(&mut self, callback: fn(&Event)) {
-        self.data.event_callback = Some(callback)
     }
 
     fn set_vsync(&mut self, enabled: bool) {
@@ -73,14 +65,31 @@ impl Window for WindowsWindow {
     }
 }
 
-impl WindowsWindow {
+impl<'a, T: Observer> Subject<'a, T> for WindowsWindow<'a, T> {
+    fn attach(&mut self, observer: &'a mut T) {
+        self.app = Some(observer)
+    }
 
-    pub fn init() -> WindowsWindow{
+    fn detach(&mut self, _: &'a mut T) {
+        self.app = None
+    }
+
+    fn notify(&self, event: &Event) {
+        match &self.app {
+            Some(app) => app.update(event),
+            None => hades_error(String::from("Window error: application observer was not set properly."))
+        }
+    }
+}
+
+impl<'a, T: Observer> WindowsWindow<'a, T> {
+
+    pub fn init() -> WindowsWindow<'a, T>{
         let data = WindowData::default();
         
         hades_info(format!("Creating window {} ({}, {})", data.title, data.width, data.height));
         
-        let mut glfw = glfw::init(glfw::fail_on_errors!()).unwrap();
+        let mut glfw = glfw::init(error_callback).unwrap();
 
         // TODO: Add assertion
 
@@ -89,13 +98,65 @@ impl WindowsWindow {
                                     .expect("Failed to create GLFW window");
         
         window.make_current();
-        window.set_framebuffer_size_polling(true);
+
+        // Set the events we want glfw to poll to handle
+        window.set_close_polling(true);
+        window.set_size_polling(true);
         window.set_key_polling(true);
+        window.set_mouse_button_polling(true);
+        window.set_scroll_polling(true);
+        window.set_cursor_pos_polling(true);
+
         
-        WindowsWindow { glfw, window_handle: window, events: w_events, data}
+        WindowsWindow { app: None, glfw, window_handle: window, events: w_events, data}
     }
 
     pub fn should_close(&self) -> bool {
         self.window_handle.should_close()
     }
+
+    fn process_events(&mut self) {
+        for(_, window_event) in glfw::flush_messages(&self.events) {
+            match window_event {
+                glfw::WindowEvent::Close => {
+                    let event = Event::new(EventType::WindowClose);
+                    self.notify(&event);
+                    self.window_handle.set_should_close(true);
+                }
+                glfw::WindowEvent::Size(width, height) => {
+                    let event = Event::new(EventType::WindowResize { width: width as u32, height: height as u32 });
+                    self.notify(&event);
+                }
+                glfw::WindowEvent::Key(key, _, action, _) => {
+                    let event = Event::new(match action {
+                        Action::Press => EventType::KeyPressed { keycode: key as i32, repeat_count: 0 },
+                        Action::Release => EventType::KeyReleased { keycode: key as i32 },
+                        Action::Repeat => EventType::KeyPressed { keycode: key as i32, repeat_count: 1 },
+                    });
+                    self.notify(&event);
+                }
+                glfw::WindowEvent::MouseButton(button, action, _) => {
+                    let event = Event::new(match action {
+                        Action::Press => EventType::MouseButtonPressed { button: button as i32 },
+                        Action::Release => EventType::MouseButtonReleased { button: button as i32 },
+                        _ => EventType::None
+                    });
+                    self.notify(&event);
+                }
+                glfw::WindowEvent::Scroll(x_offset, y_offset) => {
+                    let event = Event::new(EventType::MouseScrolled { x_offset: x_offset as f32, y_offset: y_offset as f32 });
+                    self.notify(&event);
+                }
+                glfw::WindowEvent::CursorPos(x, y) => {
+                    let event = Event::new(EventType::MouseMoved { x: x as f32, y: y as f32 });
+                    self.notify(&event);
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+fn error_callback(error: Error, description: String) {
+    hades_error(format!("GLFW Error ({:?}): {:?}", error, description))
 }
