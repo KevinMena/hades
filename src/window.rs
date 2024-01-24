@@ -74,7 +74,7 @@ impl<'a, T: Observer> Subject<'a, T> for WindowsWindow<'a, T> {
         self.app = None
     }
 
-    fn notify(&self, event: &Event) {
+    fn notify(&self, event: &mut Event) {
         match &self.app {
             Some(app) => app.update(event),
             None => hades_error(String::from("Window error: application observer was not set properly."))
@@ -119,37 +119,37 @@ impl<'a, T: Observer> WindowsWindow<'a, T> {
         for(_, window_event) in glfw::flush_messages(&self.events) {
             match window_event {
                 glfw::WindowEvent::Close => {
-                    let event = Event::new(EventType::WindowClose);
-                    self.notify(&event);
+                    let mut event = Event::new(EventType::WindowClose);
+                    self.notify(&mut event);
                     self.window_handle.set_should_close(true);
                 }
                 glfw::WindowEvent::Size(width, height) => {
-                    let event = Event::new(EventType::WindowResize { width: width as u32, height: height as u32 });
-                    self.notify(&event);
+                    let mut event = Event::new(EventType::WindowResize { width: width as u32, height: height as u32 });
+                    self.notify(&mut event);
                 }
                 glfw::WindowEvent::Key(key, _, action, _) => {
-                    let event = Event::new(match action {
+                    let mut event = Event::new(match action {
                         Action::Press => EventType::KeyPressed { keycode: key as i32, repeat_count: 0 },
                         Action::Release => EventType::KeyReleased { keycode: key as i32 },
                         Action::Repeat => EventType::KeyPressed { keycode: key as i32, repeat_count: 1 },
                     });
-                    self.notify(&event);
+                    self.notify(&mut event);
                 }
                 glfw::WindowEvent::MouseButton(button, action, _) => {
-                    let event = Event::new(match action {
+                    let mut event = Event::new(match action {
                         Action::Press => EventType::MouseButtonPressed { button: button as i32 },
                         Action::Release => EventType::MouseButtonReleased { button: button as i32 },
                         _ => EventType::None
                     });
-                    self.notify(&event);
+                    self.notify(&mut event);
                 }
                 glfw::WindowEvent::Scroll(x_offset, y_offset) => {
-                    let event = Event::new(EventType::MouseScrolled { x_offset: x_offset as f32, y_offset: y_offset as f32 });
-                    self.notify(&event);
+                    let mut event = Event::new(EventType::MouseScrolled { x_offset: x_offset as f32, y_offset: y_offset as f32 });
+                    self.notify(&mut event);
                 }
                 glfw::WindowEvent::CursorPos(x, y) => {
-                    let event = Event::new(EventType::MouseMoved { x: x as f32, y: y as f32 });
-                    self.notify(&event);
+                    let mut event = Event::new(EventType::MouseMoved { x: x as f32, y: y as f32 });
+                    self.notify(&mut event);
                 }
                 _ => {}
             }

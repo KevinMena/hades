@@ -15,18 +15,19 @@ impl Application {
         Application {running: true}
     }
 
-    fn on_windows_close(&self, _: &Event) {
+    fn on_windows_close(&self, _: &Event) -> bool{
         // self.running = false;
         // self.window.set_should_close(true);
+        true
     }
 }
 
 impl Observer for Application {
-    fn update(&self, event: &Event) {
-        match event.get_event_type() {
+    fn update(&self, event: &mut Event) {
+        event.set_handled(match event.get_event_type() {
             EventType::WindowClose => self.on_windows_close(event),
-            _ => {}
-        }
+            _ => false
+        });
 
         hades_trace(format!("{}", event.to_string()));
     }

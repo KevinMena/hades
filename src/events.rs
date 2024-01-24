@@ -64,6 +64,10 @@ impl Event {
         self.event_type.to_string()
     }
 
+    pub fn set_handled(&mut self, value: bool) {
+        self.handled = value
+    }
+
     pub fn get_category_flags(&self) -> i32 {
         match self.event_type {
             EventType::None => todo!(),
@@ -109,31 +113,13 @@ impl Event {
     }
 }
 
-pub struct EventDispatcher {
-    event: Event
-}
-
-impl EventDispatcher {
-    pub fn new(event: Event) -> EventDispatcher {
-        EventDispatcher {event}
-    }
-
-    pub fn dispatch (&mut self, f: fn(&Event) -> bool) {
-        self.event.handled = f(&self.event)
-    }
-
-    pub fn get_event(&self) -> &Event {
-        &self.event
-    }
-}
-
 pub trait Observer {
-    fn update(&self, event: &Event);
+    fn update(&self, event: &mut Event);
 }
 
 // TODO: UNDERSTAND WHY 'a AND CHECK IF THERE IS A BETTER WAY TO DO THIS
 pub trait Subject<'a, T: Observer> {
     fn attach(&mut self, observer: &'a mut T);
     fn detach(&mut self, observer: &'a mut T);
-    fn notify(&self, event: &Event);
+    fn notify(&self, event: &mut Event);
 }
