@@ -2,6 +2,11 @@ pub mod logger;
 pub mod events;
 pub mod window;
 
+use winit::{
+    event_loop::{ControlFlow, EventLoop},
+    window::Window as WinitWindow,
+};
+
 use events::*;
 use logger::*;
 use window::*;
@@ -42,11 +47,12 @@ impl Observer for EventDispatcher {
 fn main() {
     Logger::new().init().unwrap();
 
-    let window: WindowsWindow<'_, EventDispatcher> = WindowsWindow::init();
+    let event_loop = EventLoop::new().unwrap();
+    let window: WindowsWindow<'_, EventDispatcher> = WindowsWindow::new();
+    let winit_window: WinitWindow = WindowsWindow::<'_, EventDispatcher>::init(&event_loop, &window.get_data());
     let mut app = Application::new(window);
     app.window.attach(&mut app.dispatcher);
 
-    while !app.window.should_close() {
-        app.window.on_update()
-    }
+    event_loop.set_control_flow(ControlFlow::Poll);
+    app.window.on_update(event_loop, winit_window);
 }
