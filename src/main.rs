@@ -6,15 +6,21 @@ use events::*;
 use logger::*;
 use window::*;
 
-struct Application {
-    running: bool
+struct Application<'a> {
+    window: WindowsWindow<'a, EventDispatcher>,
+    dispatcher: EventDispatcher
 }
 
-impl Application {
-    pub fn new () -> Application {
-        Application {running: true}
+impl<'a> Application<'a> {
+    pub fn new (window: WindowsWindow<'_, EventDispatcher>) -> Application {
+        Application {window, dispatcher: EventDispatcher {}}
     }
+}
 
+struct EventDispatcher;
+
+// TODO: CHECK IF I CAN MAKE THE OBSERVER BE MUTABLE TO CHANGE THE FIELDS
+impl EventDispatcher {
     fn on_windows_close(&self, _: &Event) -> bool{
         // self.running = false;
         // self.window.set_should_close(true);
@@ -22,7 +28,7 @@ impl Application {
     }
 }
 
-impl Observer for Application {
+impl Observer for EventDispatcher {
     fn update(&self, event: &mut Event) {
         event.set_handled(match event.get_event_type() {
             EventType::WindowClose => self.on_windows_close(event),
@@ -36,11 +42,11 @@ impl Observer for Application {
 fn main() {
     Logger::new().init().unwrap();
 
-    let mut app = Application::new();
-    let mut window: WindowsWindow<'_, Application> = WindowsWindow::init();
-    window.attach(&mut app);
+    let window: WindowsWindow<'_, EventDispatcher> = WindowsWindow::init();
+    let mut app = Application::new(window);
+    app.window.attach(&mut app.dispatcher);
 
-    while !window.should_close() {
-        window.on_update()
+    while !app.window.should_close() {
+        app.window.on_update()
     }
 }

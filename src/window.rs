@@ -27,7 +27,7 @@ impl WindowData {
 }
 
 pub struct WindowsWindow<'a, T: Observer> {
-    app: Option<&'a mut T>,
+    observer: Option<&'a mut T>,
     glfw: glfw::Glfw,
     window_handle: glfw::PWindow,
     events: GlfwReceiver<(f64, WindowEvent)>,
@@ -67,16 +67,16 @@ impl<'a, T: Observer> Window for WindowsWindow<'a, T> {
 
 impl<'a, T: Observer> Subject<'a, T> for WindowsWindow<'a, T> {
     fn attach(&mut self, observer: &'a mut T) {
-        self.app = Some(observer)
+        self.observer = Some(observer)
     }
 
     fn detach(&mut self, _: &'a mut T) {
-        self.app = None
+        self.observer = None
     }
 
     fn notify(&self, event: &mut Event) {
-        match &self.app {
-            Some(app) => app.update(event),
+        match &self.observer {
+            Some(observer) => observer.update(event),
             None => hades_error(String::from("Window error: application observer was not set properly."))
         }
     }
@@ -106,9 +106,8 @@ impl<'a, T: Observer> WindowsWindow<'a, T> {
         window.set_mouse_button_polling(true);
         window.set_scroll_polling(true);
         window.set_cursor_pos_polling(true);
-
         
-        WindowsWindow { app: None, glfw, window_handle: window, events: w_events, data}
+        WindowsWindow { observer: None, glfw, window_handle: window, events: w_events, data}
     }
 
     pub fn should_close(&self) -> bool {
