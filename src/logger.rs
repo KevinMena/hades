@@ -55,6 +55,7 @@ pub fn init() -> Result<(), SetLoggerError>{
     Logger::new().init()
 }
 
+// TODO: Add this as macros and add specific for the engine and for apps
 pub fn hades_trace(message: String) {
     trace!("{}", message)
 }

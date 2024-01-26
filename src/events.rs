@@ -68,6 +68,10 @@ impl Event {
         self.handled = value
     }
 
+    pub fn is_handled(&self) -> bool {
+        self.handled
+    }
+
     pub fn get_category_flags(&self) -> i32 {
         match self.event_type {
             EventType::None => todo!(),
@@ -111,15 +115,4 @@ impl Event {
             EventType::MouseScrolled { x_offset, y_offset } => format!("MouseScrolledEvent {},{}", x_offset, y_offset),
         }
     }
-}
-
-pub trait Observer {
-    fn update(&self, event: &mut Event);
-}
-
-// TODO: UNDERSTAND WHY 'a AND CHECK IF THERE IS A BETTER WAY TO DO THIS
-pub trait Subject<'a, T: Observer> {
-    fn attach(&mut self, observer: &'a mut T);
-    fn detach(&mut self, observer: &'a mut T);
-    fn notify(&self, event: &mut Event);
 }
