@@ -12,21 +12,21 @@ use crate::{
     layers::*
 };
 
-pub struct Application<'a> {
+pub struct Application {
     running: bool,
     window_data: WindowData,
-    layer_stack: LayerStack<'a>
+    layer_stack: LayerStack
 }
 
-impl<'a> Application<'a> {
-    pub fn new () -> Application<'a> {
+impl Application {
+    pub fn new () -> Application {
         let window_data = WindowData::default();
         let layer_stack = LayerStack::new();
         
         // Testing
         let mut app = Application { running: true, window_data, layer_stack };
 
-        app.push_layer(&ExampleLayer { name: "Example" });
+        app.push_layer(Box::new(ExampleLayer { name: "Example" }));
 
         app
     }
@@ -48,11 +48,11 @@ impl<'a> Application<'a> {
     }
 
     // Layers functions
-    pub fn push_layer(&mut self, layer: &'a dyn Layer) {
+    pub fn push_layer(&mut self, layer: Box<dyn Layer>) {
         self.layer_stack.push_layer(layer);
     }
 
-    pub fn push_overlay(&mut self, overlay: &'a dyn Layer) {
+    pub fn push_overlay(&mut self, overlay: Box<dyn Layer>) {
         self.layer_stack.push_overlay(overlay);
     }
 
@@ -91,7 +91,7 @@ impl<'a> Application<'a> {
     // Winit events for the window
     fn run(&mut self, event_loop: EventLoop<()>, _window: WinitWindow) {
         event_loop.run(move |event, elwt| {
-            // First handle the layers
+            // First handle the layers (TODO: Not sure if this is called the right way)
             if self.running{
                 for layer in self.layer_stack.get_layers() {
                     layer.on_update();
