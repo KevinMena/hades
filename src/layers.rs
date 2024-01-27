@@ -2,7 +2,7 @@ use crate::events::Event;
 
 // TODO: Make the comparison for the traits so we can check if two objects are the same
 pub trait Layer {
-    fn eq(&self, other: &dyn Layer) -> bool {
+    fn eq(&self, _other: &dyn Layer) -> bool {
         true
     }
 

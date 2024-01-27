@@ -1,9 +1,9 @@
-use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError, error, warn, info, debug, trace};
+use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use colored::*;
 use time::{format_description::FormatItem, OffsetDateTime};
 
 const TIMESTAMP_FORMAT: &[FormatItem] =
-    time::macros::format_description!("[day]-[month]-[year] [hour]:[minute]:[second]");
+    time::macros::format_description!("[hour]:[minute]:[second]");
 
 pub struct Logger;
 
@@ -25,7 +25,6 @@ impl Log for Logger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-
             // Find the correct color for the level of the log
             let level_string = match record.level() {
                 Level::Error => format!("{:<5}", record.level().to_string()).red().to_string(),
@@ -42,7 +41,7 @@ impl Log for Logger {
                 );
 
             // Construct the message and print it
-            let message = format!("[{}] {} - {}", level_string, timestamp, record.args());
+            let message = format!("[{}] [{}] {} - {}", timestamp, level_string, record.target(), record.args());
 
             println!("{}", message);
         }
@@ -55,23 +54,74 @@ pub fn init() -> Result<(), SetLoggerError>{
     Logger::new().init()
 }
 
-// TODO: Add this as macros and add specific for the engine and for apps
-pub fn hades_trace(message: String) {
-    trace!("{}", message)
+// Core engine macros for the logs
+#[allow(unused_macros)]
+macro_rules! hds_core_error {
+    ($($arg:tt)+) => (log::log!(target: "HADES", log::Level::Error, $($arg)+));
 }
+#[allow(unused_imports)]
+pub(crate) use hds_core_error;
 
-pub fn hades_debug(message: String) {
-    debug!("{}", message)
+#[allow(unused_macros)]
+macro_rules! hds_core_warn {
+    ($($arg:tt)+) => (log::log!(target: "HADES", log::Level::Warn, $($arg)+));
 }
+#[allow(unused_imports)]
+pub(crate) use hds_core_warn;
 
-pub fn hades_info(message: String) {
-    info!("{}", message)
+#[allow(unused_macros)]
+macro_rules! hds_core_info {
+    ($($arg:tt)+) => (log::log!(target: "HADES", log::Level::Info, $($arg)+));
 }
+#[allow(unused_imports)]
+pub(crate) use hds_core_info;
 
-pub fn hades_warn(message: String) {
-    warn!("{}", message)
+#[allow(unused_macros)]
+macro_rules! hds_core_debug {
+    ($($arg:tt)+) => (log::log!(target: "HADES", log::Level::Debug, $($arg)+));
 }
+#[allow(unused_imports)]
+pub(crate) use hds_core_debug;
 
-pub fn hades_error(message: String) {
-    error!("{}", message)
+#[allow(unused_macros)]
+macro_rules! hds_core_trace {
+    ($($arg:tt)+) => (log::log!(target: "HADES", log::Level::Trace, $($arg)+));
 }
+#[allow(unused_imports)]
+pub(crate) use hds_core_trace;
+
+// App macros for the logs
+#[allow(unused_macros)]
+macro_rules! hds_error {
+    ($($arg:tt)+) => (log::log!(target: "APP", log::Level::Error, $($arg)+));
+}
+#[allow(unused_imports)]
+pub(crate) use hds_error;
+
+#[allow(unused_macros)]
+macro_rules! hds_warn {
+    ($($arg:tt)+) => (log::log!(target: "APP", log::Level::Warn, $($arg)+));
+}
+#[allow(unused_imports)]
+pub(crate) use hds_warn;
+
+#[allow(unused_macros)]
+macro_rules! hds_info {
+    ($($arg:tt)+) => (log::log!(target: "APP", log::Level::Info, $($arg)+));
+}
+#[allow(unused_imports)]
+pub(crate) use hds_info;
+
+#[allow(unused_macros)]
+macro_rules! hds_debug {
+    ($($arg:tt)+) => (log::log!(target: "APP", log::Level::Debug, $($arg)+));
+}
+#[allow(unused_imports)]
+pub(crate) use hds_debug;
+
+#[allow(unused_macros)]
+macro_rules! hds_trace {
+    ($($arg:tt)+) => (log::log!(target: "APP", log::Level::Trace, $($arg)+));
+}
+#[allow(unused_imports)]
+pub(crate) use hds_trace;

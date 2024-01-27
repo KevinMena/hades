@@ -6,10 +6,7 @@ use winit::{
 };
 
 use crate::{
-    logger::*,
-    events::{Event, EventType},
-    window::WindowData,
-    layers::*
+    events::{Event, EventType}, logger::*, layers::*, window::WindowData
 };
 
 pub struct Application {
@@ -38,7 +35,7 @@ impl Application {
                     .with_inner_size(winit::dpi::LogicalSize::new(data.get_width(), data.get_height()))
                     .build(&event_loop).unwrap();
         
-        hades_info(format!("Creating window {} ({}, {})", data.get_title(), data.get_width(), data.get_height()));
+        hds_core_info!("Creating window {} ({}, {})", data.get_title(), data.get_width(), data.get_height());
         
         window
     }
@@ -49,10 +46,12 @@ impl Application {
 
     // Layers functions
     pub fn push_layer(&mut self, layer: Box<dyn Layer>) {
+        layer.on_attach();
         self.layer_stack.push_layer(layer);
     }
 
     pub fn push_overlay(&mut self, overlay: Box<dyn Layer>) {
+        overlay.on_attach();
         self.layer_stack.push_overlay(overlay);
     }
 
@@ -73,7 +72,7 @@ impl Application {
             _ => false
         });
 
-        hades_trace(format!("{}", event.to_string()));
+        hds_core_trace!("{}", event.to_string());
 
         for layer in self.layer_stack.get_layers().iter().rev() {
             layer.on_event(event);
@@ -179,11 +178,11 @@ impl Layer for ExampleLayer {
     }
 
     fn on_update(&self) {
-        hades_info(String::from("ExampleLayer::Update"));
+        hds_info!("ExampleLayer::Update");
     }
 
     fn on_event(&self, event: &Event) {
-        hades_trace(format!("APP: {}", event.to_string()));
+        hds_trace!("{}", event.to_string());
     }
 
     fn get_name(&self) -> &str {
