@@ -11,5 +11,5 @@ fn main() {
     Logger::new().init().unwrap();
 
     let mut app = Application::new();
-    app.main_loop()
+    app.run()
 }
