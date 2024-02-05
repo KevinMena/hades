@@ -17,19 +17,19 @@ impl Application {
         // Testing
         let mut app = Application { running: true, layer_stack };
 
-        app.push_layer(Box::new(ExampleLayer { name: "Example" }));
+        // app.push_layer(Box::new(ExampleLayer { name: "Example" }));
 
         app
     }
 
     // Layers functions
-    pub fn push_layer(&mut self, layer: Box<dyn Layer>) {
-        layer.on_attach();
+    pub fn push_layer(&mut self, mut layer: Box<dyn Layer>, param: LayerParam) {
+        layer.on_attach(param);
         self.layer_stack.push_layer(layer);
     }
 
-    pub fn push_overlay(&mut self, overlay: Box<dyn Layer>) {
-        overlay.on_attach();
+    pub fn push_overlay(&mut self, mut overlay: Box<dyn Layer>, param: LayerParam) {
+        overlay.on_attach(param);
         self.layer_stack.push_overlay(overlay);
     }
 
@@ -44,8 +44,8 @@ impl Application {
         window.main_loop(event_loop, self)
     }
 
-    pub fn on_update(&self) {
-        for layer in self.layer_stack.get_layers() {
+    pub fn on_update(&mut self) {
+        for layer in self.layer_stack.get_layers().iter_mut() {
             layer.on_update()
         }
     }
@@ -58,7 +58,7 @@ impl Application {
 
         hds_core_trace!("{}", event.to_string());
 
-        for layer in self.layer_stack.get_layers().iter().rev() {
+        for layer in self.layer_stack.get_layers().iter_mut().rev() {
             layer.on_event(&event);
             if event.is_handled() {
                 break;
@@ -70,35 +70,5 @@ impl Application {
     fn on_windows_close(&mut self, _: &Event) -> bool{
         self.running = false;
         true
-    }
-}
-
-struct ExampleLayer {
-    name: &'static str
-}
-
-impl Layer for ExampleLayer {
-    fn eq(&self, _other: &dyn Layer) -> bool {
-        false
-    }
-
-    fn on_attach(&self) {
-        
-    }
-
-    fn on_detach(&self) {
-        
-    }
-
-    fn on_update(&self) {
-        hds_info!("ExampleLayer::Update");
-    }
-
-    fn on_event(&self, event: &Event) {
-        hds_trace!("{}", event.to_string());
-    }
-
-    fn get_name(&self) -> &str {
-        self.name
     }
 }

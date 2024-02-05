@@ -1,3 +1,7 @@
+pub mod imgui_layer;
+
+use imgui_winit_support::winit::window::Window as WinitWindow;
+
 use crate::events::Event;
 
 // TODO: Make the comparison for the traits so we can check if two objects are the same
@@ -6,10 +10,10 @@ pub trait Layer {
         true
     }
 
-    fn on_attach(&self);
-    fn on_detach(&self);
-    fn on_update(&self);
-    fn on_event(&self, event: &Event);
+    fn on_attach(&mut self, param: LayerParam);
+    fn on_detach(&mut self);
+    fn on_update(&mut self);
+    fn on_event(&mut self, event: &Event);
 
     fn get_name(&self) -> &str;
 }
@@ -24,8 +28,8 @@ impl LayerStack {
         LayerStack { layers: vec![], layer_insert: 0 }
     }
 
-    pub fn get_layers(&self) -> &Vec<Box<dyn Layer>> {
-        &self.layers
+    pub fn get_layers(&mut self) -> &mut Vec<Box<dyn Layer>> {
+        &mut self.layers
     }
 
     pub fn push_layer(&mut self, layer: Box<dyn Layer>) {
@@ -45,4 +49,8 @@ impl LayerStack {
     pub fn pop_overlay(&mut self, overlay: Box<dyn Layer>) {
         self.layers.remove(self.layers.iter().position(|x| overlay.eq(&**x)).expect("Element not in the vector."));
     }
+}
+
+pub enum LayerParam<'a> {
+    Window(&'a WinitWindow)
 }
