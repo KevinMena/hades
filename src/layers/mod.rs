@@ -1,6 +1,6 @@
 pub mod imgui_layer;
 
-use imgui_winit_support::winit::window::Window as WinitWindow;
+use imgui_winit_support::winit::window::Window;
 
 use crate::events::Event;
 
@@ -13,7 +13,7 @@ pub trait Layer {
     fn on_attach(&mut self, param: LayerParam);
     fn on_detach(&mut self);
     fn on_update(&mut self);
-    fn on_event(&mut self, event: &Event);
+    fn on_event(&mut self, event: &Event) -> bool;
 
     fn get_name(&self) -> &str;
 }
@@ -52,5 +52,6 @@ impl LayerStack {
 }
 
 pub enum LayerParam<'a> {
-    Window(&'a WinitWindow)
+    None,
+    Window(&'a Window)
 }

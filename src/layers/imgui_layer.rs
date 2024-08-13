@@ -1,12 +1,13 @@
 use imgui::{
     Context, Style, BackendFlags
 };
+
 use imgui_winit_support::WinitPlatform;
+use winit::window::Window;
 use std::time::Instant;
 
 use crate::{
-    layers::{Layer, LayerParam},
-    events::{Event, EventType}
+    events::{Event, EventType}, layers::{Layer, LayerParam}
 };
 
 pub struct ImguiLayer{
@@ -16,17 +17,7 @@ pub struct ImguiLayer{
 }
 
 impl ImguiLayer {
-    pub fn new() -> ImguiLayer {
-        ImguiLayer { imgui: None, platform: None, last_frame: Instant::now() } 
-    }
-}
-
-impl Layer for ImguiLayer {
-    fn on_attach(&mut self, param: LayerParam) {
-        let window = match param {
-            LayerParam::Window(window) => window,
-        };
-
+    pub fn new(window: &Window) -> ImguiLayer {
         let mut imgui = Context::create();
         imgui.set_ini_filename(None);
         Style::use_dark_colors(imgui.style_mut());
@@ -43,8 +34,36 @@ impl Layer for ImguiLayer {
 
         imgui.io_mut().font_global_scale = (1.0 / winit_platform.hidpi_factor()) as f32;
 
-        self.imgui = Some(imgui);
-        self.platform = Some(winit_platform);
+        ImguiLayer { imgui: Some(imgui), platform: Some(winit_platform), last_frame: Instant::now() } 
+    }
+}
+
+impl Layer for ImguiLayer {
+    fn on_attach(&mut self, _: LayerParam) {
+
+        // // Gather window where it's going to render
+        // let window  = match param {
+        //     LayerParam::Window(window) => window
+        // };
+
+        // let mut imgui = Context::create();
+        // imgui.set_ini_filename(None);
+        // Style::use_dark_colors(imgui.style_mut());
+
+        // imgui.io_mut().backend_flags |= BackendFlags::HAS_MOUSE_CURSORS;
+        // imgui.io_mut().backend_flags |= BackendFlags::HAS_SET_MOUSE_POS;
+
+        // let mut winit_platform = WinitPlatform::init(&mut imgui);
+        // winit_platform.attach_window(imgui.io_mut(), window, imgui_winit_support::HiDpiMode::Rounded);
+        
+        // imgui
+        //     .fonts()
+        //     .add_font(&[imgui::FontSource::DefaultFontData { config: None }]);
+
+        // imgui.io_mut().font_global_scale = (1.0 / winit_platform.hidpi_factor()) as f32;
+
+        // self.imgui = Some(imgui);
+        // self.platform = Some(winit_platform);
         self.last_frame = Instant::now();
     }
 
@@ -58,7 +77,7 @@ impl Layer for ImguiLayer {
         self.last_frame = now;
     }
 
-    fn on_event(&mut self, event: &Event) {
+    fn on_event(&mut self, event: &Event) -> bool {
         match event.get_event_type() {
             EventType::AboutToWait(window) => {
                 self.platform
@@ -71,6 +90,8 @@ impl Layer for ImguiLayer {
             EventType::WindowRedrawRequest => (),
             _ => ()
         }
+
+        false
     }
 
     fn get_name(&self) -> &str {

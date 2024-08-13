@@ -10,6 +10,6 @@ use application::*;
 fn main() {
     Logger::new().init().unwrap();
 
-    let mut app = Application::new();
-    app.run()
+    let (mut app, event_loop) = Application::new();
+    app.run(event_loop)
 }

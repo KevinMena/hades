@@ -1,13 +1,15 @@
 use std::fmt::{Display, self};
+use imgui_winit_support::winit::window::Window as WinitWindow;
+use winit::event_loop::EventLoopWindowTarget;
 
 #[derive(Copy, Clone)]
-pub enum EventType {
+pub enum EventType<'a> {
     None,
-    WindowClose, 
+    WindowClose { elwt: &'a EventLoopWindowTarget<()>}, 
     WindowResize { width: u32, height: u32 }, 
     WindowFocus, WindowLostFocus, WindowMoved, WindowRedrawRequest,
     AppTick, AppUpdate, AppRender, 
-    AboutToWait(&'static imgui_winit_support::winit::window::Window),
+    AboutToWait(&'a WinitWindow),
     KeyPressed { keycode: i32, repeat_count: i32 }, 
     KeyReleased { keycode: i32 },
     MouseButtonPressed { button: i32 }, 
@@ -16,11 +18,11 @@ pub enum EventType {
     MouseScrolled { x_offset: f32, y_offset: f32 }
 }
 
-impl Display for EventType {
+impl Display for EventType<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EventType::None                     => write!(f, "None"),
-            EventType::WindowClose              => write!(f, "WindowClose"),
+            EventType::WindowClose {..}         => write!(f, "WindowClose"),
             EventType::WindowResize {..}        => write!(f, "WindowResize"),
             EventType::WindowFocus              => write!(f, "WindowFocus"),
             EventType::WindowLostFocus          => write!(f, "WindowLostFocus"),
@@ -35,7 +37,7 @@ impl Display for EventType {
             EventType::MouseMoved {..}          => write!(f, "MouseMoved"),
             EventType::MouseScrolled {..}       => write!(f, "MouseScrolled"),
             EventType::WindowRedrawRequest      => write!(f, "WindowRedrawRequest"),
-            EventType::AboutToWait(_)              => write!(f, "AboutToWait"),
+            EventType::AboutToWait(_)           => write!(f, "AboutToWait"),
         }
     }
 }
@@ -49,12 +51,12 @@ pub enum EventCategory {
     EventCategoryMouseButton = 1 << 4
 }
 
-pub struct Event {
+pub struct Event<'a> {
     handled: bool,
-    event_type: EventType
+    event_type: EventType<'a>
 }
 
-impl Event {
+impl Event<'_> {
     pub fn new(event_type: EventType) -> Event {
         Event {handled: false, event_type}
     }
@@ -78,7 +80,7 @@ impl Event {
     pub fn get_category_flags(&self) -> i32 {
         match self.event_type {
             EventType::None => todo!(),
-            EventType::WindowClose => EventCategory::EventCategoryApplication as i32,
+            EventType::WindowClose {..} => EventCategory::EventCategoryApplication as i32,
             EventType::WindowResize {..} => EventCategory::EventCategoryApplication as i32,
             EventType::WindowFocus => todo!(),
             EventType::WindowLostFocus => todo!(),
@@ -104,7 +106,7 @@ impl Event {
     pub fn to_string(&self) -> String {
         match self.event_type {
             EventType::None => todo!(),
-            EventType::WindowClose => format!("WindowClose"),
+            EventType::WindowClose {..} => format!("WindowClose"),
             EventType::WindowResize { width, height } => format!("WindowsResize {}, {}", width, height),
             EventType::WindowFocus => todo!(),
             EventType::WindowLostFocus => todo!(),

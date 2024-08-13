@@ -1,13 +1,19 @@
+use glutin::{
+    config::ConfigTemplateBuilder,
+    context::{ContextAttributesBuilder, NotCurrentGlContext, PossiblyCurrentContext},
+    display::{GetGlDisplay, GlDisplay},
+    surface::{Surface, SurfaceAttributesBuilder, WindowSurface},
+};
+
 use winit::{
-    keyboard::PhysicalKey,
-    window::{Window as WinitWindow, WindowBuilder},
-    event::{ElementState, Event as WinitEvent, KeyEvent, MouseScrollDelta, WindowEvent, MouseButton},
+    window::{Window, WindowBuilder},
     event_loop::EventLoop
 };
 
-use crate::{
-    events::{Event, EventType}, logger::*, Application
-};
+use raw_window_handle::HasRawWindowHandle;
+use std::num::NonZeroU32;
+
+use crate::logger::*;
 
 pub struct WindowData {
     title: &'static str,
@@ -18,7 +24,15 @@ pub struct WindowData {
 
 impl WindowData {
     pub fn default() -> WindowData {
-        WindowData {title: "Hades Engine", width: 1280, height: 720, vsync: true}
+        WindowData {title: "Hades Engine", width: Self::default_width(), height: Self::default_height(), vsync: true}
+    }
+
+    pub fn default_width() -> u32 {
+        1280
+    }
+
+    pub fn default_height() -> u32 {
+        720
     }
 
     pub fn get_title(&self) -> &str {
@@ -42,89 +56,51 @@ impl WindowData {
     }
 }
 
-pub struct WindowSystem {
-    window_data: WindowData,
-    window: WinitWindow,
-}
+pub struct WindowSystem;
 
 impl WindowSystem {
-    pub fn init(event_loop: &EventLoop<()>) -> WindowSystem {
+    pub fn init_window(event_loop: &EventLoop<()>) -> (Window, Surface<WindowSurface>, PossiblyCurrentContext) {
         let window_data = WindowData::default();
-        let window = WindowBuilder::new()
+        let window_builder = WindowBuilder::new()
                     .with_title(window_data.get_title())
-                    .with_inner_size(winit::dpi::LogicalSize::new(window_data.get_width(), window_data.get_height()))
-                    .build(&event_loop).unwrap();
+                    .with_inner_size(winit::dpi::LogicalSize::new(window_data.get_width(), window_data.get_height()));
+
+        // Create opengl window using glutin for setup
+        let (window, cfg) = glutin_winit::DisplayBuilder::new()
+            .with_window_builder(Some(window_builder))
+            .build(&event_loop, ConfigTemplateBuilder::new(), |mut configs| {
+                configs.next().unwrap()
+            })
+            .expect("Failed to create OpenGL window");
+
+        let window = window.unwrap();
 
         hds_core_info!("Creating window {} ({}, {})", window_data.get_title(), window_data.get_width(), window_data.get_height());
 
-        WindowSystem { window_data, window }
-    }
+        // Create context and surface
+        let ctx_attr = ContextAttributesBuilder::new().build(Some(window.raw_window_handle()));
+        let context = unsafe {
+            cfg.display()
+                .create_context(&cfg, &ctx_attr)
+                .expect("Failed to create OpenGL context")
+        };
 
-    pub fn main_loop(&self, event_loop: EventLoop<()>, app: &mut Application) {
+        let sur_attr = SurfaceAttributesBuilder::<WindowSurface>::new()
+            .with_srgb(Some(true))
+            .build(
+                window.raw_window_handle(), 
+                NonZeroU32::new(WindowData::default_width()).unwrap(), 
+                NonZeroU32::new(WindowData::default_height()).unwrap()
+            );
+        
+        let surface = unsafe {
+            cfg.display()
+                .create_window_surface(&cfg, &sur_attr)
+                .expect("Failed to create OpenGL surface")
+        };
 
-        event_loop.run(move |event, elwt| {
-            // Handle the events from the window
-            match event {
-                WinitEvent::NewEvents(_) => {
-                    app.on_update();
-                },
-                WinitEvent::WindowEvent { event, .. } => {
-                    match event {
-                        WindowEvent::CloseRequested => {
-                            let hades_event = Event::new(EventType::WindowClose);
-                            app.on_event(hades_event);
-                            elwt.exit()
-                        },
-                        WindowEvent::Resized(size) => {
-                            let hades_event = Event::new(EventType::WindowResize { width: size.width, height: size.height });
-                            app.on_event(hades_event);
-                        },
-                        WindowEvent::KeyboardInput { event: KeyEvent { physical_key, state, repeat, ..}, .. } => {
-                            let hades_event = Event::new(match physical_key {
-                                PhysicalKey::Code(keycode) => match state {
-                                    ElementState::Pressed => if repeat {
-                                        EventType::KeyPressed { keycode: keycode as i32, repeat_count: 1 }
-                                    }
-                                    else {
-                                        EventType::KeyPressed { keycode: keycode as i32, repeat_count: 0 }
-                                    },
-                                    ElementState::Released => EventType::KeyReleased { keycode: keycode as i32 },
-                                },
-                                PhysicalKey::Unidentified(_) => EventType::None,
-                            });
-                            app.on_event(hades_event);
-                        },
-                        WindowEvent::MouseInput { button, state, .. } => {
-                            let hades_event = Event::new(match state {
-                                ElementState::Pressed => EventType::MouseButtonPressed { button: match button {
-                                    MouseButton::Left => 0,
-                                    MouseButton::Right => 1,
-                                    _ => -1
-                                } },
-                                ElementState::Released => EventType::MouseButtonReleased { button: match button {
-                                    MouseButton::Left => 0,
-                                    MouseButton::Right => 1,
-                                    _ => -1
-                                } }
-                            });
-                            app.on_event(hades_event);
-                        },
-                        WindowEvent::MouseWheel { delta, .. } => {
-                            let hades_event = Event::new(match delta {
-                                MouseScrollDelta::LineDelta(x_offset, y_offset) => EventType::MouseScrolled { x_offset, y_offset },
-                                _ => EventType::None,
-                            });
-                            app.on_event(hades_event);
-                        },
-                        WindowEvent::CursorMoved { position, .. } => {
-                            let hades_event = Event::new(EventType::MouseMoved { x: position.x as f32, y: position.y as f32 });
-                            app.on_event(hades_event);
-                        },
-                        _ => ()
-                    }
-                },
-                _ => ()
-            }
-        }).expect("Error with the events")
+        let context = context.make_current(&surface).expect("Failed to create OpenGL context");
+
+        (window, surface, context)
     }
 }
