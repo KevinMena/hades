@@ -1,11 +1,10 @@
 use std::fmt::{Display, self};
 use imgui_winit_support::winit::window::Window as WinitWindow;
-use winit::event_loop::EventLoopWindowTarget;
 
 #[derive(Copy, Clone)]
 pub enum EventType<'a> {
     None,
-    WindowClose { elwt: &'a EventLoopWindowTarget<()>}, 
+    WindowClose, 
     WindowResize { width: u32, height: u32 }, 
     WindowFocus, WindowLostFocus, WindowMoved, WindowRedrawRequest,
     AppTick, AppUpdate, AppRender, 
@@ -22,7 +21,7 @@ impl Display for EventType<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EventType::None                     => write!(f, "None"),
-            EventType::WindowClose {..}         => write!(f, "WindowClose"),
+            EventType::WindowClose              => write!(f, "WindowClose"),
             EventType::WindowResize {..}        => write!(f, "WindowResize"),
             EventType::WindowFocus              => write!(f, "WindowFocus"),
             EventType::WindowLostFocus          => write!(f, "WindowLostFocus"),
@@ -80,7 +79,7 @@ impl Event<'_> {
     pub fn get_category_flags(&self) -> i32 {
         match self.event_type {
             EventType::None => todo!(),
-            EventType::WindowClose {..} => EventCategory::EventCategoryApplication as i32,
+            EventType::WindowClose   => EventCategory::EventCategoryApplication as i32,
             EventType::WindowResize {..} => EventCategory::EventCategoryApplication as i32,
             EventType::WindowFocus => todo!(),
             EventType::WindowLostFocus => todo!(),
@@ -106,22 +105,22 @@ impl Event<'_> {
     pub fn to_string(&self) -> String {
         match self.event_type {
             EventType::None => todo!(),
-            EventType::WindowClose {..} => format!("WindowClose"),
-            EventType::WindowResize { width, height } => format!("WindowsResize {}, {}", width, height),
-            EventType::WindowFocus => todo!(),
-            EventType::WindowLostFocus => todo!(),
-            EventType::WindowMoved => todo!(),
-            EventType::WindowRedrawRequest => format!("WindowRedrawRequest"),
-            EventType::AppTick => todo!(),
-            EventType::AppUpdate => todo!(),
-            EventType::AppRender => todo!(),
-            EventType::AboutToWait(_) => format!("AboutToWait"),
-            EventType::KeyPressed { keycode, repeat_count } => format!("KeyPressedEvent: {} ({} repeats)", keycode, repeat_count),
-            EventType::KeyReleased { keycode } => format!("KeyReleasedEvent {}", keycode),
-            EventType::MouseButtonPressed { button } => format!("MouseButtonPressed {}", button),
-            EventType::MouseButtonReleased { button } => format!("MouseButtonReleased {}", button),
-            EventType::MouseMoved { x, y } => format!("MouseMovedEvent ({},{})", x, y),
-            EventType::MouseScrolled { x_offset, y_offset } => format!("MouseScrolledEvent {},{}", x_offset, y_offset),
+            EventType::WindowClose                                       => format!("WindowClose"),
+            EventType::WindowResize { width, height }          => format!("WindowsResize {}, {}", width, height),
+            EventType::WindowFocus                                       => todo!(),
+            EventType::WindowLostFocus                                   => todo!(),
+            EventType::WindowMoved                                       => todo!(),
+            EventType::WindowRedrawRequest                               => format!("WindowRedrawRequest"),
+            EventType::AppTick                                           => todo!(),
+            EventType::AppUpdate                                         => todo!(),
+            EventType::AppRender                                         => todo!(),
+            EventType::AboutToWait(_)                                    => format!("AboutToWait"),
+            EventType::KeyPressed { keycode, repeat_count }    => format!("KeyPressedEvent: {} ({} repeats)", keycode, repeat_count),
+            EventType::KeyReleased { keycode }                      => format!("KeyReleasedEvent {}", keycode),
+            EventType::MouseButtonPressed { button }                => format!("MouseButtonPressed {}", button),
+            EventType::MouseButtonReleased { button }               => format!("MouseButtonReleased {}", button),
+            EventType::MouseMoved { x, y }                     => format!("MouseMovedEvent ({},{})", x, y),
+            EventType::MouseScrolled { x_offset, y_offset }    => format!("MouseScrolledEvent {},{}", x_offset, y_offset),
         }
     }
 }

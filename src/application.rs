@@ -67,8 +67,9 @@ impl Application {
                 WinitEvent::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
-                            let hades_event = Event::new(EventType::WindowClose { elwt });
+                            let hades_event = Event::new(EventType::WindowClose);
                             self.on_event(hades_event);
+                            self.on_windows_close(elwt);
                         },
                         WindowEvent::Resized(size) => {
                             let hades_event = Event::new(EventType::WindowResize { width: size.width, height: size.height });
@@ -130,11 +131,6 @@ impl Application {
     }
 
     pub fn on_event(&mut self, mut event: Event) {
-        event.set_handled(match event.get_event_type() {
-            EventType::WindowClose {elwt} => self.on_windows_close(&elwt),
-            _ => false
-        });
-
         hds_core_trace!("{}", event.to_string());
 
         for layer in self.layer_stack.get_layers().iter_mut().rev() {
