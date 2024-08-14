@@ -1,11 +1,14 @@
-use glutin::{context::PossiblyCurrentContext, surface::{Surface, WindowSurface}};
+use std::rc::Rc;
+
+use glutin::{context::PossiblyCurrentContext, surface::{GlSurface, Surface, WindowSurface}};
 use imgui_layer::ImguiLayer;
 use winit::{
     event::{ElementState, Event as WinitEvent, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent}, 
-    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, 
+    event_loop::{ControlFlow, EventLoop}, 
     keyboard::PhysicalKey, 
     window::Window
 };
+use std::num::NonZeroU32;
 
 use crate::{
     events::{Event, EventType}, layers::*, logger::*, window::WindowSystem
@@ -14,7 +17,7 @@ use crate::{
 pub struct Application {
     running: bool,
     layer_stack: LayerStack,
-    window: Window,
+    window: Rc<Window>,
     surface: Surface<WindowSurface>,
     context: PossiblyCurrentContext
 }
@@ -29,9 +32,9 @@ impl Application {
         let (window, surface, context) = WindowSystem::init_window(&event_loop);
 
         // Create layers that compound the application
-        let imgui_layer = ImguiLayer::new(&window);
+        let imgui_layer = ImguiLayer::new(&window, &context);
         
-        let mut app = Application { running: true, layer_stack, window, surface, context};
+        let mut app = Application { running: true, layer_stack, window: Rc::new(window), surface, context};
 
         app.push_layer(Box::new(imgui_layer), LayerParam::None);
 
@@ -57,21 +60,46 @@ impl Application {
     }
 
     pub fn main_loop(&mut self, event_loop: EventLoop<()>) {
+        let window = self.window.clone();
 
         event_loop.run(move |event, elwt| {
             // Handle the events from the window
             match event {
                 WinitEvent::NewEvents(_) => {
+                    let hades_event = Event::new(EventType::NewEvents);
+                    self.on_event(hades_event);
                     self.on_update();
                 },
+                WinitEvent::AboutToWait => {
+                    let hades_event = Event::new(EventType::AboutToWait(&window));
+                    self.on_event(hades_event);
+                    self.window.request_redraw();
+                }
                 WinitEvent::WindowEvent { event, .. } => {
                     match event {
+                        WindowEvent::RedrawRequested => {
+                            let hades_event = Event::new(EventType::WindowRedrawRequest(&window));
+                            self.on_event(hades_event);
+
+                            self.surface.swap_buffers(&self.context)
+                                .expect("Failed swap buffers");
+                        },
                         WindowEvent::CloseRequested => {
                             let hades_event = Event::new(EventType::WindowClose);
                             self.on_event(hades_event);
-                            self.on_windows_close(elwt);
+
+                            elwt.exit();
+                            self.on_windows_close();
                         },
                         WindowEvent::Resized(size) => {
+                            if size.width > 0 && size.height > 0 {
+                                self.surface.resize(
+                                    &self.context, 
+                                    NonZeroU32::new(size.width).unwrap(),
+                                    NonZeroU32::new(size.height).unwrap(),
+                                )
+                            }
+
                             let hades_event = Event::new(EventType::WindowResize { width: size.width, height: size.height });
                             self.on_event(hades_event);
                         },
@@ -142,9 +170,7 @@ impl Application {
     }
 
     // Event callbacks
-    fn on_windows_close(&mut self, elwt: &EventLoopWindowTarget<()>) -> bool{
+    fn on_windows_close(&mut self){
         self.running = false;
-        elwt.exit();
-        true
     }
 }
